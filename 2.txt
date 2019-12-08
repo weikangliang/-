@@ -1,0 +1,558 @@
+1、0-1背包
+#include<iostream>
+#include<vector>
+#include<algorithm>
+#define maxn  100;
+using namespace std;
+struct good
+{
+	int weight;
+	int profit;
+};
+
+int main()
+{
+	cout << "请输入背包重量" << endl;
+	int w;
+	cin >> w;
+	cout << "请输入物品个数：" << endl;
+	int n;
+	cin >> n;
+	vector<good> t(n + 1);
+	for (int i = 1; i <= n; i++)
+	{
+		cout << "请输入物品" << i << "的重量";
+		cin >> t[i].weight;
+		cout << "请输入物品" << i << "的收益";
+		cin >> t[i].profit;
+	}
+
+	int dp[100][1000] = { 0 };
+
+	for (int i = 1; i <= n; i++)
+	{
+		for (int j = 1; j <= w; j++)
+		{
+			if (j >= t[i].weight)
+			{
+				dp[i][j] = max(dp[i - 1][j], dp[i - 1][j - t[i].weight] + t[i].profit);
+			}
+			else
+			{
+				dp[i][j] = dp[i - 1][j];
+			}
+		}
+	}
+
+	for (int i = 0; i <= n; i++)
+	{
+		for (int j = 0; j <= w; j++)
+		{
+			cout << dp[i][j] << " ";
+		}
+		cout << endl;
+	}
+	cout << "挑选出的物品是：" << endl;
+	int c = n;
+	int j = w;
+	while (c != 1)
+	{
+		if (c >= 0)
+		{
+			if (dp[c][j] != dp[c - 1][j])
+			{
+				cout << c << " ";
+				j = j - t[c].weight;
+				c = c - 1;
+			}
+			else
+			{
+				c = c - 1;
+			}
+		}
+	}
+	if (dp[c][j] != 0)
+	{
+		cout << 1;
+	}
+}
+/*
+简单的作业排序
+只需要知道作业大小并不需要知道具体数值
+假定输入时已经按效益值从大到小排序
+仅读入期限
+
+***注意插入排序时的条件
+*/
+#include<iostream>
+#include<algorithm>
+#include<vector>
+using namespace std;
+int main()
+{
+	int n;
+	cin >> n;
+
+	vector<int> date(n + 1, 0);
+	vector<int> job(n + 1, 0);
+
+	for (int i = 1; i <= n; i++)
+	{
+		cin >> date[i];
+	}
+
+	int k = 1;//已计入作业数量
+	job[1] = 1;//计入作业
+
+	for (int i = 2; i < n; i++)	//与插入排序基本相同
+	{
+		int r = k;
+
+		while (date[job[r]] > date[i] && date[job[r]] != r)//因为前边有0，故必能结束
+			r--;
+
+		if (date[job[r]] <= date[i] && date[i] > r)//第一个条件排除了job[r]] == r的情况
+		{
+			for (int j = k; j > r; j--)
+			{
+				job[j + 1] = job[j];
+			}
+
+			job[r + 1] = i;
+			k = k + 1;
+		}
+	}
+
+	int i = 1;
+	while (job[i] != 0)
+	{
+		cout << job[i] << " ";
+		i++;
+	}
+
+	return 0;
+}
+
+/*
+更快的作业排序
+求数组，容器中最大.最小的元素
+max_element(vector.bedin(),vector.end())
+min_element(vector.bedin(),vector.end())
+函数传参数时由于不是全局变量，且返回值不是该参数，故必须传引用或指针
+只有根节点才不是正数
+*/
+#include<iostream>
+#include<algorithm>
+#include<vector>
+using namespace std;
+
+int FIND(int i, vector<int> &P)//寻找根节点
+{
+	int j = i;
+
+	while (P[j] > 0)//找到树根
+		j = P[j];
+
+	int k = i;//压缩路径
+	while (k != j)
+	{
+		int t = P[k];
+		P[k] = j;
+		k = t;
+	}
+
+	return j;
+}
+
+int UNION(int i, int j, vector<int> &P)//合并
+{   //P(i)均为负数 //便于找到根节点
+	int x = P[i] + P[j];
+	if (P[i] > P[j])
+	{
+		P[i] = j;
+		P[j] = x;
+		return j;
+	}
+
+	else
+	{
+		P[j] = i;
+		P[i] = x;
+		return i;
+	}
+}
+
+int main()
+{
+	int n;
+	cin >> n;
+
+	vector<int> date(n + 1, 0);//每个作业完成的日期,初始化为0，虚拟date[0]=0;
+	vector<int> job(n + 1, 0);//最优作业集合
+
+	for (int i = 1; i <= n; i++)
+	{
+		cin >> date[i];
+	}
+
+	int b = min(n, *max_element(date.begin(), date.end()));//确定需要多少个时间片
+
+	vector<int> F(b + 1);//保存每个节点的根节点
+	vector<int> P(b + 1, -1);//保存每个节点的父节点，初始化为-1
+
+	for (int i = 0; i <= b; i++)
+	{
+		F[i] = i;//根节点初始化为本身
+	}
+
+	int k = 0;
+
+	for (int i = 1; i <= n; i++)
+	{
+		int j = FIND(min(n, date[i]), P);//找到占用的时间位置
+
+		if (F[j] != 0)//根节点不等于0
+		{
+			k = k + 1;//作业进入job
+			job[k] = i;
+
+			int L = FIND(F[j] - 1, P);//找到上一个时间片的根节点
+
+			UNION(L, j, P);//合并 更新父节点 
+
+			F[j] = F[L];//更新根节点
+		}
+	}
+
+	int i = 1;
+
+	while (job[i] != 0)
+	{
+		cout << job[i] << " ";
+		i++;
+	}
+
+}
+
+2、多段图
+#include <iostream>
+#include <vector>
+
+#define MAX 9999
+using namespace std;
+
+//初始化图
+void initGraph(vector<vector<int> > &g, vector<vector<int> > &s) {
+	cout << "输入边信息：（顶点a 顶点b 权值w）（输入0结束）" << endl;
+	int i, j;
+	while (cin >> i && i) {
+		cin >> j;
+		cin >> g[i][j];
+	}
+	cout << "输入起点：";
+	cin >> s[1][0];
+	int level;
+	cout << "输入中间阶段数：（不含起点和终点层）";
+	cin >> level;
+	int a = 2;
+	for (int i = 1; i <= level; i++) {						//将点分阶段
+		cout << "输入中间第" << i << "阶段的点：（输入0结束）";
+		int k, j = 0;
+		while (cin >> k && k) {
+			s[a][j++] = k;
+		}
+		a++;
+	}
+	cout << "输入终点：";
+	cin >> s[a][0];
+}
+
+//寻找路径
+void way(vector<vector<int> > &g, vector<vector<int> > &s, vector<vector<int> > &f, vector<int> &result) {
+	int n = g.size() - 1;			//获取结点数
+	int level, i;				//获取总层数（包含起点终点）
+	for (i = 1; i <= n; i++) 
+		if (s[i][0] == 0)
+			break;
+	level = i - 1;
+
+	int t = n;
+	int start = s[1][0];
+	int end = s[level][0];
+	for (i = level - 1; i >= 1; i--){	//阶段
+		int j = 0;
+		while (s[i][j]){				//该层次有点
+			int m = 0;					//i+1阶段的点
+			f[i][j] = MAX;
+			if (g[s[i][j]][end] == MAX){
+				while (s[i + 1][m] != 0){
+					if (g[s[i][j]][s[i + 1][m]] != MAX){
+						if (f[i][j] > (f[i + 1][m] + g[s[i][j]][s[i + 1][m]])){
+							f[i][j] = f[i + 1][m] + g[s[i][j]][s[i + 1][m]];
+							result[s[i][j]] = s[i + 1][m];
+							t--;
+						}
+					}
+					m++;
+				}
+			}
+			else{
+				while (s[i + 1][m] != 0){
+					if (f[i][j] > (f[i + 1][m] + g[s[i][j]][s[i + 1][m]])){
+						f[i][j] = f[i + 1][m] + g[s[i][j]][s[i + 1][m]];
+						result[s[i][j]] = s[i + 1][m];
+						t--;
+					}
+					m++;
+				}
+			}
+			j++;
+		}
+	}
+}
+
+//打印
+void print(vector<int> &result, vector<vector<int> > &s, vector<vector<int> > &f) {
+	int n = result.size() - 1;
+	cout << "最短路径为：";
+	int t = s[1][0];
+	cout << t;				//起点
+	while (result[t] != s[n][0]) {
+		cout << " ->" << result[t];
+		t = result[t];
+	}
+	cout << endl << "最短距离为：" << f[1][0] << endl;
+}
+
+int main() {
+	int vexNum;
+	cout << "输入点的个数：";
+	cin >> vexNum;
+	vector<vector<int> > graph(vexNum + 1, vector<int>(vexNum + 1, MAX));	//保存边的长度
+	vector<vector<int> > s(vexNum + 1, vector<int>(vexNum + 1, 0));			//保存每个阶段的状态
+	vector<vector<int> > f(vexNum + 1, vector<int>(vexNum + 1, 0));			//保存该状态下点到终点的距离
+	vector<int > result(vexNum + 1, 0);										//保存结果
+	
+	initGraph(graph, s);		//初始化图
+	way(graph, s, f, result);	//寻找最短路径
+	print(result, s, f);			//输出结果
+	
+	system("pause");
+	return 0;
+}
+/*
+背包问题 贪心
+不要忘记给结构体内变量赋初值
+变量为double类型
+*/
+#include<algorithm>
+#include<iostream>
+#include<vector>
+using namespace std;
+
+struct ware {
+	int num;//背包号码
+	double P;//效益
+	double W;//重量
+	double p_w;//单位效益
+	ware()
+	{
+		num = 0;
+		P = 0.0;
+		W = 0.0;
+		p_w = 0.0;
+	}
+};
+struct Job {
+	int num;//背包号码
+	double weight;//重量（单位化）
+	Job() { num = 0; weight = 0.0; }
+};
+
+bool cmp(ware a, ware b)//从大到小排列
+{
+	return a.p_w > b.p_w;
+}
+
+int main()
+{
+	int n;
+	double M;
+	cin >> n >> M;
+
+	vector<ware> W_P(n);//可以用变量值初始化
+
+	for (int i = 0; i < n; i++)
+	{
+		//此种方式事前不必定义大小或大小随意
+		ware temp;
+		temp.num = i + 1;//背包号码
+		cin >> temp.P >> temp.W;
+		temp.p_w = temp.P / temp.W;
+		W_P.push_back(temp);
+
+		//当不会发生越界的时候可用此种方式
+		/*
+		cin >> W_P[i].P >> W_P[i].W;
+		W_P[i].p_w = W_P[i].P / W_P[i].W;
+		W_P[i].num = i + 1;
+		*/
+	}
+
+
+	sort(W_P.begin(), W_P.end(), cmp);
+
+	cout << "排好序的结果为:" << endl;
+	for (int i = 0; i < n; i++)
+	{
+		cout << W_P[i].num << " " << W_P[i].p_w << endl;
+	}
+
+	vector<Job> J(n);
+
+	for (int i = 0; i < n; i++)
+	{
+		if (W_P[i].W < M)
+		{
+			M = M - W_P[i].W;
+			J[i].num = W_P[i].num;
+			J[i].weight = 1.0;
+		}
+		else {
+			J[i].num = W_P[i].num;
+			J[i].weight = M / W_P[i].W;
+			break;
+		}
+	}
+
+	int i = 0;
+	cout << "背包问题最优结果为:" << endl;
+	while (J[i].num != 0)
+	{
+		cout << J[i].num << " " << J[i].weight << endl;
+		i++;
+	}
+	return 0;
+}
+//八皇后问题
+/*
+八皇后问题
+*/
+#include <iostream>
+using namespace std;
+bool check_2(int a[], int n)
+{//多次被调用，只需一重循环 
+	for (int i = 1; i <= n - 1; i++)
+	{
+		if ((abs(a[i] - a[n]) == n - i) || (a[i] == a[n]))
+			return false;
+	}
+	return true;
+}
+
+void queens_2()
+{
+	int a[9];
+	int count = 0;
+	for (a[1] = 1; a[1] <= 8; a[1]++)
+	{
+		for (a[2] = 1; a[2] <= 8; a[2]++)
+		{
+			if (!check_2(a, 2))  continue;
+			for (a[3] = 1; a[3] <= 8; a[3]++)
+			{
+				if (!check_2(a, 3))  continue;
+				for (a[4] = 1; a[4] <= 8; a[4]++)
+				{
+					if (!check_2(a, 4))  continue;
+					for (a[5] = 1; a[5] <= 8; a[5]++)
+					{
+						if (!check_2(a, 5))  continue;
+						for (a[6] = 1; a[6] <= 8; a[6]++)
+						{
+							if (!check_2(a, 6))  continue;
+							for (a[7] = 1; a[7] <= 8; a[7]++)
+							{
+								if (!check_2(a, 7))  continue;
+								for (a[8] = 1; a[8] <= 8; a[8]++)
+								{
+									if (!check_2(a, 8))
+										continue;
+									else
+									{
+										for (int i = 1; i <= 8; i++)
+										{
+											cout << a[i];
+										}
+										cout << endl;
+										count++;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+
+		}
+	}
+	cout << count << endl;
+}
+
+void main()
+{
+	queens_2();
+}
+
+
+
+/*
+八皇后问题
+*/
+#include <iostream>
+using namespace std;
+
+
+int a[100], n, count1;
+bool check_2(int a[], int n)
+{//多次被调用，只需一重循环 
+	for (int i = 1; i <= n - 1; i++)
+	{
+		if ((abs(a[i] - a[n]) == n - i) || (a[i] == a[n]))
+			return false;
+	}
+	return true;
+}
+
+
+void backtrack(int k)
+{
+	if (k > n)//找到解
+	{
+		for (int i = 1; i <= n; i++)
+		{
+			cout << a[i];
+		}
+		cout << endl;
+		count1++;
+	}
+	else
+	{
+		for (int i = 1; i <= n; i++)
+		{
+			a[k] = i;//上一个不合适的数据会在这里被覆盖掉
+			if (check_2(a, k) == 1)
+			{
+				backtrack(k + 1);
+			}
+		}
+	}
+
+}
+
+void main()
+{
+	n = 4, count1 = 0;
+	backtrack(1);
+	cout << count1 << endl;
+}
